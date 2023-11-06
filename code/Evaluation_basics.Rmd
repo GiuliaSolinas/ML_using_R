@@ -1,0 +1,77 @@
+---
+title: "Basics_of_evaluation"
+author: "Giulia Solinas"
+date: "2023-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Remarks on evaluation
+
+- The ultimate goal of a data analysis is to make predictions on new data.
+
+
+```{r}
+library(tidyverse)
+library(caret)
+library(dslabs)
+data(heights)
+
+# define the outcome and predictors
+y <- heights$sex
+x <- heights$height
+
+# generate training and test sets
+set.seed(2007)
+test_index <- createDataPartition(y, times = 1, p = 0.5, list = FALSE)
+test_set <- heights[test_index, ]
+train_set <- heights[-test_index, ]
+
+# guess the outcome
+y_hat <- sample(c("Male", "Female"), length(test_index), replace = TRUE) %>% 
+  factor(levels = levels(test_set$sex))
+
+# compute accuracy
+mean(y_hat == test_set$sex)
+
+# compare heights in males and females in our data set
+heights %>% group_by(sex) %>% summarize(mean(height), sd(height))
+
+# now try predicting "male" if the height is within 2 SD of the average male
+y_hat <- ifelse(x > 62, "Male", "Female") %>% factor(levels = levels(test_set$sex))
+mean(y == y_hat)
+
+# examine the accuracy of 10 cutoffs
+cutoff <- seq(61, 70)
+accuracy <- map_dbl(cutoff, function(x){
+  y_hat <- ifelse(train_set$height > x, "Male", "Female") %>% 
+    factor(levels = levels(test_set$sex))
+  mean(y_hat == train_set$sex)
+})
+data.frame(cutoff, accuracy) %>% 
+  ggplot(aes(cutoff, accuracy)) + 
+  geom_point() + 
+  geom_line() 
+max(accuracy)
+
+best_cutoff <- cutoff[which.max(accuracy)]
+best_cutoff
+
+y_hat <- ifelse(test_set$height > best_cutoff, "Male", "Female") %>% 
+  factor(levels = levels(test_set$sex))
+y_hat <- factor(y_hat)
+mean(y_hat == test_set$sex)
+
+```
+Some notes about the code above:
+- the set.seed() function is used to obtain reproducible results. This course requires a R version of 3.6 or newer to obtain the same results when setting the seed.
+- To mimic the ultimate evaluation process, we randomly split our data into two — a training set and a test set — and act as if we don’t know the outcome of the test set. We develop algorithms using only the training set; the test set is used only for evaluation.
+- The `'createDataPartition()'` function from the caret package can be used to generate indexes for randomly splitting data.
+- Contrary to what the documentation says, this course will use the argument p as the percentage of data that goes to testing. The indexes made from createDataPartition() should be used to create the test set. Indexes should be created on the outcome and not a predictor.
+- The simplest evaluation metric for categorical outcomes is overall accuracy: the proportion of cases that were correctly predicted in the test set.
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
