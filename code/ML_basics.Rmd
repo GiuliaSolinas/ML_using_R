@@ -1,0 +1,23 @@
+---
+title: "ML_basics"
+author: "Giulia Solinas"
+date: "2023-11-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+Here the code about the dataset mnist
+
+```{r}
+library(dslabs)
+
+mnist <- dslabs::read_mnist()
+ncol(mnist$train$images)
+```
+
